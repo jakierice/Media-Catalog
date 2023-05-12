@@ -1,9 +1,28 @@
 import React from "react"
+import { match } from "ts-pattern"
 import { observer } from "mobx-react"
 import { action } from "mobx"
 
+import {
+  Button,
+  IconButton,
+  Grid,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Menu,
+  MenuItem,
+  Rating,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+} from "@mui/material"
+import { MoreVert, Movie, SportsEsports, Tv } from "@mui/icons-material"
+
 import { MediaContentItem } from "./MediaContent.types"
-import { MediaForm } from "./MediaForm"
+import { useMediaForm, MediaForm } from "./MediaForm"
 
 export const MediaItem = observer(
   ({
@@ -13,49 +32,100 @@ export const MediaItem = observer(
     item: MediaContentItem
     handleDelete: (id: number) => void
   }) => {
-    const modalRef = React.useRef<HTMLDialogElement | null>(null)
+    const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false)
+    const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
+    const isActionMenuOpen = Boolean(anchorEl)
+    const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
+      setAnchorEl(event.currentTarget)
+    }
+    const handleCloseMenu = () => {
+      setAnchorEl(null)
+    }
+
+    const handleOpenDialog = () => {
+      setIsEditDialogOpen(true)
+    }
+
+    const handleCloseDialog = () => {
+      setIsEditDialogOpen(false)
+    }
+
+    const mediaFormProps = useMediaForm({
+      initial: item,
+      handleChange: action((key, value) => {
+        item[key] = value
+      }),
+    })
 
     return (
-      <li key={item.id}>
-        <h2>{item.title}</h2>
-        <p>
-          {item.genre} {item.type}
-        </p>
-        <p>Rating: {item.rating}</p>
-        <p>Released: {item.releaseYear}</p>
-        <button type="button" onClick={() => modalRef.current?.showModal()}>
-          Edit
-        </button>
-        <button type="button" onClick={() => handleDelete(item.id)}>
-          Delete
-        </button>
-        <dialog ref={modalRef}>
-          <MediaForm
-            item={item}
-            onTitleEdit={action((value) => {
-              item.title = value
-            })}
-            onTypeEdit={action((value) => {
-              item.type = value
-            })}
-            onReleaseYearEdit={action((value) => {
-              item.releaseYear = value
-            })}
-            onGenreEdit={action((value) => {
-              item.genre = value
-            })}
-            onRatingEdit={action((value) => {
-              item.rating = value
-            })}
-          />
-          <button type="button" onClick={() => modalRef.current?.close()}>
-            Close
-          </button>
-        </dialog>
-      </li>
+      <ListItem
+        key={item.id}
+        secondaryAction={
+          <>
+            <IconButton
+              aria-label="media item actions"
+              onClick={handleOpenMenu}
+            >
+              <MoreVert />
+            </IconButton>
+            <Menu
+              open={isActionMenuOpen}
+              onClose={handleCloseMenu}
+              anchorEl={anchorEl}
+            >
+              <MenuItem onClick={handleOpenDialog}>Edit</MenuItem>
+              <MenuItem onClick={() => handleDelete(item.id)}>Delete</MenuItem>
+            </Menu>
+          </>
+        }
+      >
+        <ListItemIcon>
+          {match(item.type)
+            .with("movie", () => <Movie />)
+            .with("tv-show", () => <Tv />)
+            .with("game", () => <SportsEsports />)
+            .exhaustive()}
+        </ListItemIcon>
+        <ListItemText
+          primary={
+            <Grid container spacing={1}>
+              <Grid item xs={12} md="auto">
+                {item.title}
+              </Grid>
+              <Grid item xs={12} md="auto">
+                <Rating value={item.rating} max={10} readOnly />
+              </Grid>
+            </Grid>
+          }
+          secondary={`${item.genre} ${item.type} - ${item.releaseYear}`}
+        />
+        <Dialog
+          open={isEditDialogOpen}
+          onClose={handleCloseDialog}
+          fullWidth
+          maxWidth="md"
+        >
+          <DialogTitle>Edit details for {item.title}</DialogTitle>
+          <DialogContent>
+            <MediaForm {...mediaFormProps} />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDialog}>Close</Button>
+          </DialogActions>
+        </Dialog>
+      </ListItem>
     )
   }
 )
+// <MediaFormDialog
+//   item={item}
+//   title={`Edit details for ${item.title}`}
+//   isOpen={isEditDialogOpen}
+//   onClose={handleCloseDialog}
+//   handleFormChange={action((key, value) => {
+//     item[key] = value
+//   })}
+// />
 
 export const MediaList = observer(
   ({
@@ -66,11 +136,11 @@ export const MediaList = observer(
     handleRemove: (id: number) => void
   }) => {
     return (
-      <ol>
+      <List>
         {mediaList.map((item) => (
           <MediaItem key={item.id} item={item} handleDelete={handleRemove} />
         ))}
-      </ol>
+      </List>
     )
   }
 )

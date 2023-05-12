@@ -11,10 +11,10 @@ export const contentRatingSchema = z.number().gte(0).lte(10)
 export type ContentRating = z.infer<typeof contentRatingSchema>
 
 export const mediaContentItemDetailsSchema = z.object({
-  title: z.string(),
+  title: z.string().min(1),
   type: contentTypeSchema,
-  genre: z.string(),
-  releaseYear: z.number(),
+  genre: z.string().min(1),
+  releaseYear: z.number().gte(1930).lte(new Date().getFullYear()),
   rating: contentRatingSchema,
 })
 
